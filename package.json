@@ -9,6 +9,7 @@
     "build": "pnpm --filter @chain-rush/web build",
     "preview": "pnpm --filter @chain-rush/web preview",
     "typecheck": "pnpm --filter @chain-rush/web exec tsc -b",
-    "test": "pnpm --filter @chain-rush/web test"
+    "test": "pnpm --filter @chain-rush/web test",
+    "lint": "pnpm --filter @chain-rush/web lint"
   }
 }

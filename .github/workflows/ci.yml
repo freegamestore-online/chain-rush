@@ -1,5 +1,7 @@
 name: CI
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
 jobs:
@@ -13,4 +15,6 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
       - run: pnpm typecheck
+      - run: pnpm test
