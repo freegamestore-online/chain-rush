@@ -3,32 +3,40 @@ import { useEffect, useState } from "react";
 import { Celebration } from "./feel/Celebration";
 import GameShell from "./GameShell";
 import { Board, type BoardMode } from "./game/Board";
+import { DAILY_MOVES } from "./game/daily";
 import { formatValue } from "./game/format";
+import { useLeaderboard, recentDaily } from "./game/leaderboard";
 import { useChainGame } from "./game/useChainGame";
-import { useHighScore } from "./hooks/useHighScore";
 import type { Pos } from "./engine";
 
 const RULES = (
   <p>
     Drag across touching tiles of the same value, or an equal pair followed by double (2-2-4-8). Let go
     to merge. The tip shows the value you will get. Every 500 points earns a helper: Hammer removes a
-    tile, Swap trades two tiles, Shuffle reorders the board. Undo takes back your last chain.
+    tile, Swap trades two tiles, Shuffle reorders the board. Undo takes back your last chain. The daily
+    board is the same for everyone on a date and lasts {DAILY_MOVES} chains.
   </p>
 );
 
 export default function App() {
   const game = useChainGame();
-  const [best, updateBest] = useHighScore("chain-rush:best");
+  const scores = useLeaderboard();
   const [mode, setMode] = useState<BoardMode>("chain");
   const [pending, setPending] = useState<Pos | null>(null);
-  const { over, score, highest, helpers, undo: canUndo, grid } = game.game;
+  const [scoresOpen, setScoresOpen] = useState(false);
+  const { finished, limitReached, mode: gameMode, date, game: state } = game;
+  const { score, highest, helpers, undo: canUndo, grid, moves } = state;
   const celebration = game.celebrations[0];
   const earned = game.merge?.earned ?? [];
 
+  // Record the score once the game ends. Recording is idempotent (keeps the best), so a reload
+  // of a finished game does no harm.
   useEffect(() => {
-    if (over) updateBest(score);
-    // Record the best score once, when the game ends.
-  }, [over]);
+    if (!finished) return;
+    if (gameMode === "daily" && date) scores.recordDailyScore(date, score);
+    else scores.recordEndlessScore(score);
+    // Only the end of a game matters here: `scores` changes identity on every update.
+  }, [finished, gameMode, date, score]);
 
   const endHelper = () => {
     setMode("chain");
@@ -38,6 +46,11 @@ export default function App() {
   const toggleHelper = (next: "hammer" | "swap") => {
     setPending(null);
     setMode((current) => (current === next ? "chain" : next));
+  };
+
+  const switchMode = (next: "endless" | "daily") => {
+    endHelper();
+    game.switchMode(next);
   };
 
   const onTap = (pos: Pos) => {
@@ -63,6 +76,15 @@ export default function App() {
           ? "Tap a second tile to swap."
           : "Tap a tile to swap."
         : null;
+  const status =
+    hint ??
+    (earned.length > 0
+      ? `Earned: ${earned.map(labelOf).join(", ")}`
+      : gameMode === "daily"
+        ? `Daily ${date} · ${Math.max(0, DAILY_MOVES - moves)} moves left`
+        : " ");
+
+  const todays = date ? scores.board.daily[date] : undefined;
 
   return (
     <GameShell
@@ -84,11 +106,30 @@ export default function App() {
       <GameAuth />
       <main className="play-area">
         <div className="play-column">
+          <div className="mode-bar" role="group" aria-label="Game mode">
+            <GameButton
+              size="sm"
+              variant={gameMode === "endless" ? "primary" : "secondary"}
+              onClick={() => switchMode("endless")}
+            >
+              Endless
+            </GameButton>
+            <GameButton
+              size="sm"
+              variant={gameMode === "daily" ? "primary" : "secondary"}
+              onClick={() => switchMode("daily")}
+            >
+              Daily
+            </GameButton>
+            <GameButton size="sm" variant="ghost" onClick={() => setScoresOpen((open) => !open)}>
+              Scores
+            </GameButton>
+          </div>
           <Board
             grid={grid}
             ids={game.ids}
             merge={game.merge}
-            over={over}
+            over={finished}
             onCommit={game.commit}
             mode={mode}
             pending={pending}
@@ -98,7 +139,7 @@ export default function App() {
             <GameButton
               size="sm"
               variant={mode === "hammer" ? "primary" : "secondary"}
-              disabled={over || helpers.hammer === 0}
+              disabled={finished || helpers.hammer === 0}
               onClick={() => toggleHelper("hammer")}
             >
               {`Hammer ×${helpers.hammer}`}
@@ -106,7 +147,7 @@ export default function App() {
             <GameButton
               size="sm"
               variant={mode === "swap" ? "primary" : "secondary"}
-              disabled={over || helpers.swap === 0}
+              disabled={finished || helpers.swap === 0}
               onClick={() => toggleHelper("swap")}
             >
               {`Swap ×${helpers.swap}`}
@@ -114,7 +155,7 @@ export default function App() {
             <GameButton
               size="sm"
               variant="secondary"
-              disabled={over || helpers.shuffle === 0}
+              disabled={finished || helpers.shuffle === 0}
               onClick={() => {
                 endHelper();
                 game.shuffleBoard();
@@ -125,7 +166,7 @@ export default function App() {
             <GameButton
               size="sm"
               variant="ghost"
-              disabled={!canUndo}
+              disabled={limitReached || !canUndo}
               onClick={() => {
                 endHelper();
                 game.undo();
@@ -135,8 +176,27 @@ export default function App() {
             </GameButton>
           </div>
           <p className="play-status" aria-live="polite">
-            {hint ?? (earned.length > 0 ? `Earned: ${earned.map(labelOf).join(", ")}` : " ")}
+            {status}
           </p>
+          {scoresOpen && (
+            <section className="scores" aria-label="Scores">
+              <p>
+                Best endless: <strong>{scores.board.endless}</strong>
+              </p>
+              <p>
+                Today's daily: <strong>{todays ?? "not played"}</strong>
+              </p>
+              {recentDaily(scores.board).length > 0 && (
+                <ol>
+                  {recentDaily(scores.board).map((entry) => (
+                    <li key={entry.date}>
+                      {entry.date}: {entry.score}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </section>
+          )}
         </div>
         {celebration !== undefined && (
           <Celebration
@@ -145,7 +205,17 @@ export default function App() {
             onDone={game.celebrated}
           />
         )}
-        {over && <GameOverScreen score={score} highScore={Math.max(best, score)} onPlayAgain={game.restart} />}
+        {finished && (
+          <GameOverScreen
+            score={score}
+            highScore={gameMode === "endless" ? Math.max(scores.board.endless, score) : undefined}
+            onPlayAgain={game.restart}
+          >
+            {gameMode === "daily" && (
+              <p>Daily complete. Come back tomorrow for a new board, or play endless now.</p>
+            )}
+          </GameOverScreen>
+        )}
       </main>
     </GameShell>
   );

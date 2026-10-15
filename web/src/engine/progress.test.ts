@@ -15,6 +15,7 @@ function pairBoard(value: number): GameState {
     highest: value,
     helpers: { hammer: 0, swap: 0, shuffle: 0 },
     rngState: createRng(42).state(),
+    moves: 0,
     over: false,
     undo: null,
     celebrated: 0,

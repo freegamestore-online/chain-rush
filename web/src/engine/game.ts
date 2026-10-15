@@ -13,6 +13,8 @@ export interface Snapshot {
   helpers: HelperCounts;
   /** RNG state, so replaying the undone chain spawns the same tiles. */
   rngState: number;
+  /** Chains played so far. Helpers do not count. Undo takes a move back. */
+  moves: number;
 }
 
 export interface GameState extends Snapshot {
@@ -45,6 +47,7 @@ export function snapshot(state: Snapshot): Snapshot {
     highest: state.highest,
     helpers: { ...state.helpers },
     rngState: state.rngState,
+    moves: state.moves,
   };
 }
 
@@ -61,6 +64,7 @@ export function newGame(seed: number): GameState {
     highest: highestTile(grid),
     helpers: { ...STARTING_HELPERS },
     rngState: rng.state(),
+    moves: 0,
     over: false,
     undo: null,
     celebrated: 0,
@@ -94,6 +98,7 @@ export function commitChain(state: GameState, chain: readonly Pos[]): CommitResu
       highest,
       helpers,
       rngState: rng.state(),
+      moves: state.moves + 1,
       over: !hasValidChain(grid),
       undo: snapshot(state),
       celebrated: milestones[milestones.length - 1] ?? state.celebrated,

@@ -112,6 +112,28 @@ body {
   width: min(100%, 480px);
 }
 
+.mode-bar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  width: min(100%, 480px);
+}
+
+.scores {
+  width: min(100%, 480px);
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.scores p,
+.scores ol {
+  margin: 0.25rem 0;
+}
+
 .play-status {
   margin: 0;
   min-height: 1.2em;

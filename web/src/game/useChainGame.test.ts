@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { type Grid, type Pos, createGrid, getTile, hasValidChain, setTile } from "../engine";
 import { spawnFromRows } from "./Board";
-import { type ChainState, chainReducer, startState } from "./useChainGame";
+import { type ChainState, chainReducer, isFinished, startState } from "./useChainGame";
+import { DAILY_MOVES, dailyGame } from "./daily";
 
 /** Every occupied cell has an id and every empty cell has none. */
 function idsMatchGrid(state: ChainState): boolean {
@@ -169,5 +170,58 @@ describe("spawnFromRows", () => {
     expect(offsets.get("0,2")).toBe(-2);
     expect(offsets.get("1,2")).toBe(-1);
     expect(offsets.get("0,3")).toBe(-1);
+  });
+});
+
+describe("modes", () => {
+  const TODAY = "2026-10-16";
+
+  it("parks the endless game when switching to daily, and brings it back on return", () => {
+    const endless = { ...startState(40), game: { ...startState(40).game, score: 77 } };
+    const daily = chainReducer(endless, { type: "switchMode", mode: "daily", today: TODAY, seed: 1 });
+    expect(daily.mode).toBe("daily");
+    expect(daily.game.grid).toEqual(dailyGame(TODAY).grid);
+    expect(daily.parked.endless?.game.score).toBe(77);
+
+    const back = chainReducer(daily, { type: "switchMode", mode: "endless", today: TODAY, seed: 1 });
+    expect(back.mode).toBe("endless");
+    expect(back.game.score).toBe(77);
+  });
+
+  it("does nothing when asked for the mode already on screen", () => {
+    const state = startState(41);
+    expect(chainReducer(state, { type: "switchMode", mode: "endless", today: TODAY, seed: 1 })).toBe(state);
+  });
+
+  it("starts a new endless game when the parked one has ended", () => {
+    const base = startState(42);
+    const ended = { ...base, game: { ...base.game, over: true, score: 900 } };
+    const daily = chainReducer(ended, { type: "switchMode", mode: "daily", today: TODAY, seed: 1 });
+    const back = chainReducer(daily, { type: "switchMode", mode: "endless", today: TODAY, seed: 2 });
+    expect(back.game.score).toBe(0);
+    expect(back.game.over).toBe(false);
+  });
+
+  it("ends a daily board after DAILY_MOVES chains and stops play", () => {
+    const daily = chainReducer(startState(43), { type: "switchMode", mode: "daily", today: TODAY, seed: 1 });
+    const spent = { ...daily, game: { ...daily.game, moves: DAILY_MOVES } };
+    expect(isFinished(spent)).toBe(true);
+    expect(chainReducer(spent, { type: "commit", chain: anyPair(spent.game.grid) })).toBe(spent);
+    expect(chainReducer(spent, { type: "undo" })).toBe(spent);
+  });
+
+  it("restart from daily begins an endless game instead of replaying the daily board", () => {
+    const daily = chainReducer(startState(44), { type: "switchMode", mode: "daily", today: TODAY, seed: 1 });
+    const restarted = chainReducer(daily, { type: "restart", seed: 5 });
+    expect(restarted.mode).toBe("endless");
+    expect(restarted.date).toBeNull();
+  });
+
+  it("returns to a daily board for today with its progress intact", () => {
+    const daily = chainReducer(startState(45), { type: "switchMode", mode: "daily", today: TODAY, seed: 1 });
+    const moved = { ...daily, game: { ...daily.game, moves: 4 } };
+    const endless = chainReducer(moved, { type: "switchMode", mode: "endless", today: TODAY, seed: 1 });
+    const again = chainReducer(endless, { type: "switchMode", mode: "daily", today: TODAY, seed: 1 });
+    expect(again.game.moves).toBe(4);
   });
 });

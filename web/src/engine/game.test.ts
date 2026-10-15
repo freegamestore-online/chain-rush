@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { hasValidChain } from "./chain";
 import { type Grid, type Pos, createGrid, getTile, setTile } from "./grid";
-import { type GameState, commitChain, newGame } from "./game";
+import { type GameState, commitChain, newGame, undoLastChain } from "./game";
 import { createRng } from "./rng";
 
 /** Finds two touching equal tiles, returned as a chain of two. */
@@ -26,6 +26,7 @@ function stateFrom(grid: Grid, seed = 1): GameState {
     highest: 4,
     helpers: { hammer: 1, swap: 1, shuffle: 1 },
     rngState: createRng(seed).state(),
+    moves: 0,
     over: false,
     undo: null,
     celebrated: 0,
@@ -89,3 +90,27 @@ describe("commitChain", () => {
   });
 });
 
+describe("moves", () => {
+  it("counts each chain and undo takes it back", () => {
+    const state = stateFrom(pairGrid());
+    const played = commitChain(state, PAIR_AT_BOTTOM)!.state;
+    expect(played.moves).toBe(1);
+    expect(undoLastChain(played)?.moves).toBe(0);
+  });
+
+  it("does not count a refused chain", () => {
+    expect(commitChain(stateFrom(pairGrid()), [{ row: 7, col: 0 }, { row: 7, col: 2 }])).toBeNull();
+  });
+});
+
+const PAIR_AT_BOTTOM = [
+  { row: 7, col: 0 },
+  { row: 7, col: 1 },
+];
+
+function pairGrid(): Grid {
+  const grid = createGrid();
+  setTile(grid, { row: 7, col: 0 }, 2);
+  setTile(grid, { row: 7, col: 1 }, 2);
+  return grid;
+}
