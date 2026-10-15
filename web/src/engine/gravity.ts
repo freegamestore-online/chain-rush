@@ -1,14 +1,18 @@
-import { COLS, ROWS, type Grid, createGrid, getTile, setTile } from "./grid";
+import { COLS, ROWS } from "./grid";
 
-/** Drops every column's tiles to the bottom, keeping their order. Returns a new grid. */
-export function applyGravity(grid: Grid): Grid {
-  const next = createGrid();
+/**
+ * Drops every column's cells to the bottom, keeping their order. Returns a new grid. Generic over
+ * the cell type, so the view can run the same move on a grid of tile ids.
+ */
+export function applyGravity<T>(grid: readonly (readonly (T | null)[])[]): (T | null)[][] {
+  const next: (T | null)[][] = Array.from({ length: ROWS }, () => Array<T | null>(COLS).fill(null));
   for (let col = 0; col < COLS; col++) {
     let writeRow = ROWS - 1;
     for (let row = ROWS - 1; row >= 0; row--) {
-      const tile = getTile(grid, { row, col });
-      if (tile !== null) {
-        setTile(next, { row: writeRow, col }, tile);
+      const cell = grid[row]?.[col] ?? null;
+      if (cell !== null) {
+        const cells = next[writeRow];
+        if (cells) cells[col] = cell;
         writeRow--;
       }
     }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chainSum, hasValidChain, isValidChain } from "./chain";
+import { chainSum, extendChain, hasValidChain, isValidChain } from "./chain";
 import { type Grid, type Pos, createGrid, getTile, setTile } from "./grid";
 
 /** Builds a grid from rows of tile values; `0` means empty. */
@@ -130,5 +130,67 @@ describe("hasValidChain", () => {
 
   it("is false for an empty board", () => {
     expect(hasValidChain(createGrid())).toBe(false);
+  });
+});
+
+describe("extendChain", () => {
+  const at = (row: number, col: number): Pos => ({ row, col });
+
+  it("starts a chain on any non-empty tile", () => {
+    const grid = boardFrom([[2, 0, 4]]);
+    expect(extendChain(grid, [], at(0, 0))).toEqual({ chain: [at(0, 0)], status: "added" });
+  });
+
+  it("ignores an empty cell", () => {
+    const grid = boardFrom([[2, 0, 4]]);
+    expect(extendChain(grid, [], at(0, 1)).status).toBe("unchanged");
+  });
+
+  it("adds an equal adjacent tile", () => {
+    const grid = boardFrom([[2, 2, 4]]);
+    const result = extendChain(grid, [at(0, 0)], at(0, 1));
+    expect(result.status).toBe("added");
+    expect(result.chain).toEqual([at(0, 0), at(0, 1)]);
+  });
+
+  it("rejects a non-matching adjacent tile and keeps the chain", () => {
+    const grid = boardFrom([[2, 4, 0]]);
+    const chain = [at(0, 0)];
+    const result = extendChain(grid, chain, at(0, 1));
+    expect(result.status).toBe("rejected");
+    expect(result.chain).toBe(chain);
+  });
+
+  it("adds the doubling tile after an equal pair", () => {
+    const grid = boardFrom([
+      [2, 2, 0],
+      [0, 4, 0],
+    ]);
+    const result = extendChain(grid, [at(0, 0), at(0, 1)], at(1, 1));
+    expect(result.status).toBe("added");
+  });
+
+  it("removes the last tile when the drag steps back onto it", () => {
+    const grid = boardFrom([[2, 2, 2]]);
+    const result = extendChain(grid, [at(0, 0), at(0, 1)], at(0, 0));
+    expect(result).toEqual({ chain: [at(0, 0)], status: "removed" });
+  });
+
+  it("ignores the current tile and non-adjacent jumps", () => {
+    const grid = boardFrom([[2, 2, 2, 2]]);
+    const chain = [at(0, 0), at(0, 1)];
+    expect(extendChain(grid, chain, at(0, 1)).status).toBe("unchanged");
+    expect(extendChain(grid, chain, at(0, 3)).status).toBe("unchanged");
+  });
+
+  it("ignores a tile already in the chain that is not the step back", () => {
+    const grid = boardFrom([
+      [2, 2, 2],
+      [2, 2, 0],
+    ]);
+    const chain = [at(0, 0), at(0, 1), at(0, 2)];
+    expect(extendChain(grid, chain, at(1, 1)).status).toBe("added");
+    const cycle = [at(0, 0), at(0, 1), at(1, 0)];
+    expect(extendChain(grid, cycle, at(0, 0)).status).toBe("unchanged");
   });
 });

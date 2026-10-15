@@ -39,6 +39,13 @@ describe("createRng", () => {
     expect(seqA).not.toEqual(seqB);
   });
 
+  it("resumes the same sequence from a saved state", () => {
+    const a = createRng(99);
+    Array.from({ length: 7 }, () => a.next());
+    const b = createRng(a.state());
+    expect(Array.from({ length: 10 }, () => a.next())).toEqual(Array.from({ length: 10 }, () => b.next()));
+  });
+
   it("keeps nextInt within [0, max) and next within [0, 1)", () => {
     const rng = createRng(7);
     for (let i = 0; i < 500; i++) {
@@ -53,15 +60,15 @@ describe("createRng", () => {
 });
 
 describe("spawn values", () => {
-  it("only spawns 2 while the highest tile is still small", () => {
-    expect(spawnExponentCap(2)).toBe(1);
-    expect(spawnExponentCap(8)).toBe(1);
+  it("spawns only 2 or 4 while the highest tile is still small", () => {
+    expect(spawnExponentCap(0)).toBe(2);
+    expect(spawnExponentCap(32)).toBe(3);
     const rng = createRng(3);
-    for (let i = 0; i < 50; i++) expect(spawnValue(rng, 8)).toBe(2);
+    const values = new Set(Array.from({ length: 200 }, () => spawnValue(rng, 16)));
+    expect([...values].sort()).toEqual([2, 4]);
   });
 
   it("widens the spawn range as the highest tile grows, up to the cap", () => {
-    expect(spawnExponentCap(16)).toBe(2);
     expect(spawnExponentCap(64)).toBe(4);
     expect(spawnExponentCap(2 ** 20)).toBe(MAX_SPAWN_EXPONENT);
   });
@@ -79,7 +86,7 @@ describe("spawn values", () => {
 
 describe("refill", () => {
   it("fills every cell and keeps existing tiles in their settled order", () => {
-    const filled = refill(boardWithSeedTiles(), createRng(5));
+    const { grid: filled } = refill(boardWithSeedTiles(), createRng(5));
 
     expect(filled.flat().every((tile) => tile !== null)).toBe(true);
     // Seeded tiles fall to the bottom of their columns; spawns stack above them.
@@ -88,24 +95,33 @@ describe("refill", () => {
     expect(getTile(filled, { row: ROWS - 1, col: 4 })).toBe(8);
   });
 
-  it("spawns only 2s while the board's highest tile is 8", () => {
-    // Seeded board has 2, 4 and 8. Every other tile is spawned, so each must be a 2.
-    const filled = allTiles(refill(boardWithSeedTiles(), createRng(9)));
+  it("spawns only 2 or 4 while the board's highest tile is 8", () => {
+    // Seeded board has 2, 4 and 8. Every other tile is spawned, so each must be a 2 or a 4.
+    const filled = allTiles(refill(boardWithSeedTiles(), createRng(9)).grid);
     expect(filled).toHaveLength(COLS * ROWS);
-    expect(filled.filter((tile) => tile === 4)).toHaveLength(1);
     expect(filled.filter((tile) => tile === 8)).toHaveLength(1);
-    expect(filled.filter((tile) => tile === 2)).toHaveLength(COLS * ROWS - 2);
+    expect(filled.filter((tile) => tile === 2 || tile === 4)).toHaveLength(COLS * ROWS - 1);
+  });
+
+  it("reports spawned cells as the top rows of each column", () => {
+    const seeded = boardWithSeedTiles();
+    const { spawned } = refill(seeded, createRng(6));
+    // Column 0 had one tile, so 7 spawns. Column 2 likewise. Column 1 was empty, so 8 spawns.
+    const perColumn = (col: number) => spawned.filter((p) => p.col === col).map((p) => p.row).sort((a, b) => a - b);
+    expect(perColumn(0)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    expect(perColumn(1)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    expect(perColumn(4)).toEqual([0, 1, 2, 3, 4, 5, 6]);
   });
 
   it("is deterministic under a seed: same seed, same board", () => {
-    const a = refill(boardWithBigTile(), createRng(2024));
-    const b = refill(boardWithBigTile(), createRng(2024));
+    const a = refill(boardWithBigTile(), createRng(2024)).grid;
+    const b = refill(boardWithBigTile(), createRng(2024)).grid;
     expect(a).toEqual(b);
   });
 
   it("produces a different board for a different seed", () => {
-    const a = refill(boardWithBigTile(), createRng(1));
-    const b = refill(boardWithBigTile(), createRng(2));
+    const a = refill(boardWithBigTile(), createRng(1)).grid;
+    const b = refill(boardWithBigTile(), createRng(2)).grid;
     expect(a).not.toEqual(b);
   });
 

@@ -65,3 +65,38 @@ export function hasValidChain(grid: Grid): boolean {
   }
   return false;
 }
+
+export type ExtendStatus = "added" | "removed" | "rejected" | "unchanged";
+
+export interface ExtendResult {
+  /** The chain after the drag step. Same reference as the input when nothing changed. */
+  chain: readonly Pos[];
+  status: ExtendStatus;
+}
+
+/**
+ * One step of a drag. Starts a chain on a tile, adds an adjacent tile if the chain stays valid,
+ * removes the last tile when the drag steps back onto it, and rejects a step that would break the
+ * chain. Steps onto empty cells, the current tile, or non-adjacent cells are ignored.
+ */
+export function extendChain(grid: Grid, chain: readonly Pos[], pos: Pos): ExtendResult {
+  if (getTile(grid, pos) === null) return { chain, status: "unchanged" };
+
+  const last = chain[chain.length - 1];
+  if (!last) return { chain: [pos], status: "added" };
+  if (samePos(pos, last)) return { chain, status: "unchanged" };
+
+  const previous = chain[chain.length - 2];
+  if (previous && samePos(pos, previous)) return { chain: chain.slice(0, -1), status: "removed" };
+
+  if (!isAdjacent(last, pos) || chain.some((p) => samePos(p, pos))) return { chain, status: "unchanged" };
+
+  const candidate = [...chain, pos];
+  return isValidChain(grid, candidate)
+    ? { chain: candidate, status: "added" }
+    : { chain, status: "rejected" };
+}
+
+function samePos(a: Pos, b: Pos): boolean {
+  return a.row === b.row && a.col === b.col;
+}
