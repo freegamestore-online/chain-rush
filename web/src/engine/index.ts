@@ -4,4 +4,6 @@ export * from "./chain";
 export * from "./merge";
 export * from "./gravity";
 export * from "./spawn";
+export * from "./progress";
 export * from "./game";
+export * from "./helpers";

@@ -117,6 +117,30 @@ describe("Board drag", () => {
     expect(onCommit.mock.calls[0]?.[0]).toHaveLength(2);
   });
 
+  it("turns taps into helper targets instead of drags in hammer mode", () => {
+    const grid = gridWith([
+      [2, 2, 0, 0, 0],
+      [0, 0, 0, 0, 0],
+    ]);
+    const onTap = vi.fn();
+    const onCommit = vi.fn();
+    render(
+      <GameShell>
+        <Board grid={grid} ids={idsFor(grid)} merge={null} over={false} onCommit={onCommit} mode="hammer" onTap={onTap} />
+      </GameShell>,
+    );
+    const board = screen.getByRole("application", { name: "Chain Rush board" });
+
+    act(() => {
+      fireEvent.pointerDown(board, { pointerId: 1, ...pointOf(0, 1) });
+      fireEvent.pointerMove(board, { pointerId: 1, ...pointOf(0, 0) });
+      fireEvent.pointerUp(board, { pointerId: 1, ...pointOf(0, 0) });
+    });
+
+    expect(onTap).toHaveBeenCalledWith({ row: 0, col: 1 });
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
   it("shows every tile value as text, so colour is never the only cue", () => {
     const grid = gridWith([
       [2, 1024, 512, 4, 8],

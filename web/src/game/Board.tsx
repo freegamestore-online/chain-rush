@@ -24,12 +24,19 @@ import { playLinkTone, playRejectTone, primeAudio } from "./audio";
 import type { MergeEvent } from "./useChainGame";
 import { Tile } from "./Tile";
 
+export type BoardMode = "chain" | "hammer" | "swap";
+
 export interface BoardProps {
   grid: Grid;
   ids: (number | null)[][];
   merge: MergeEvent | null;
   over: boolean;
   onCommit: (chain: readonly Pos[]) => void;
+  /** `chain` drags to merge. The helper modes turn each tap into `onTap` instead. */
+  mode?: BoardMode;
+  /** A tile already picked in swap mode, shown as selected. */
+  pending?: Pos | null;
+  onTap?: (pos: Pos) => void;
 }
 
 interface Drag {
@@ -61,7 +68,7 @@ const cellKey = ({ row, col }: Pos): string => `${row},${col}`;
  * release to merge. Pointer moves are coalesced to one update per frame, and React only re-renders
  * when the chain itself changes.
  */
-export function Board({ grid, ids, merge, over, onCommit }: BoardProps) {
+export function Board({ grid, ids, merge, over, onCommit, mode = "chain", pending = null, onTap }: BoardProps) {
   const boardRef = useRef<HTMLDivElement>(null);
   const particlesRef = useRef<ParticleLayerHandle>(null);
   const gridRef = useRef(grid);
@@ -119,6 +126,10 @@ export function Board({ grid, ids, merge, over, onCommit }: BoardProps) {
     const point = boardPoint(event);
     const start = point ? cellAt(point) : null;
     if (!start || getTile(gridRef.current, start) === null) return;
+    if (mode !== "chain") {
+      onTap?.(start);
+      return;
+    }
 
     primeAudio(!mutedRef.current);
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -210,7 +221,7 @@ export function Board({ grid, ids, merge, over, onCommit }: BoardProps) {
           key={id ?? key}
           pos={pos}
           value={isTip && previewValue !== null ? previewValue : value}
-          selected={selected.has(key)}
+          selected={selected.has(key) || (pending !== null && cellKey(pending) === key)}
           preview={isTip && previewValue !== null}
           pop={merge?.tileId != null && merge.tileId === id ? merge.stamp : 0}
           spawnStamp={spawnFrom !== undefined && merge ? merge.stamp : 0}
@@ -232,7 +243,7 @@ export function Board({ grid, ids, merge, over, onCommit }: BoardProps) {
   return (
     <div
       ref={boardRef}
-      className={over ? "board over" : "board"}
+      className={[over ? "board over" : "board", `mode-${mode}`].join(" ")}
       role="application"
       aria-label="Chain Rush board"
       onPointerDown={onPointerDown}

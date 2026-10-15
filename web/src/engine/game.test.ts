@@ -20,7 +20,16 @@ function firstPair(grid: Grid): Pos[] {
 }
 
 function stateFrom(grid: Grid, seed = 1): GameState {
-  return { grid, score: 0, highest: 4, rngState: createRng(seed).state(), over: false };
+  return {
+    grid,
+    score: 0,
+    highest: 4,
+    helpers: { hammer: 1, swap: 1, shuffle: 1 },
+    rngState: createRng(seed).state(),
+    over: false,
+    undo: null,
+    celebrated: 0,
+  };
 }
 
 describe("newGame", () => {

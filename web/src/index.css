@@ -96,10 +96,34 @@ body {
   padding: 12px;
 }
 
+.play-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 0;
+}
+
+.helper-bar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  width: min(100%, 480px);
+}
+
+.play-status {
+  margin: 0;
+  min-height: 1.2em;
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-align: center;
+}
+
 .board {
   position: relative;
   container-type: inline-size;
-  width: min(100%, 480px, calc((100svh - 160px) * 0.625));
+  width: min(100%, 480px, calc((100svh - 260px) * 0.625));
   aspect-ratio: 5 / 8;
   touch-action: none;
   -webkit-user-select: none;

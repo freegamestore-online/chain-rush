@@ -24,6 +24,51 @@ function anyPair(grid: Grid): Pos[] {
   return [];
 }
 
+describe("helpers and undo in the view", () => {
+  it("keeps the id grid matching the board through helpers and undo", () => {
+    let state = startState(17, 0);
+    state = { ...state, game: { ...state.game, helpers: { hammer: 3, swap: 3, shuffle: 3 } } };
+    const pair = anyPair(state.game.grid);
+    state = chainReducer(state, { type: "commit", chain: pair });
+    expect(idsMatchGrid(state)).toBe(true);
+
+    state = chainReducer(state, { type: "hammer", pos: { row: 7, col: 0 } });
+    expect(idsMatchGrid(state)).toBe(true);
+
+    const a = { row: 0, col: 0 };
+    const b = { row: 0, col: 1 };
+    state = chainReducer(state, { type: "swap", a, b });
+    expect(idsMatchGrid(state)).toBe(true);
+
+    state = chainReducer(state, { type: "shuffle" });
+    expect(idsMatchGrid(state)).toBe(true);
+
+    state = chainReducer(state, { type: "undo" });
+    expect(idsMatchGrid(state)).toBe(true);
+  });
+
+  it("restores the ids from before the last chain on undo", () => {
+    const start = startState(23);
+    const pair = anyPair(start.game.grid);
+    const played = chainReducer(start, { type: "commit", chain: pair });
+    const restored = chainReducer(played, { type: "undo" });
+    expect(restored.ids).toEqual(start.ids);
+    expect(restored.game.grid).toEqual(start.game.grid);
+  });
+
+  it("does nothing when undo has nothing to restore", () => {
+    const state = startState(24);
+    expect(chainReducer(state, { type: "undo" })).toBe(state);
+  });
+
+  it("does nothing when a helper has no uses left", () => {
+    const state = startState(25);
+    const empty = { ...state, game: { ...state.game, helpers: { hammer: 0, swap: 0, shuffle: 0 } } };
+    expect(chainReducer(empty, { type: "hammer", pos: { row: 0, col: 0 } })).toBe(empty);
+    expect(chainReducer(empty, { type: "shuffle" })).toBe(empty);
+  });
+});
+
 describe("startState", () => {
   it("gives every opening tile a unique id", () => {
     const state = startState(5);
@@ -80,8 +125,8 @@ describe("chainReducer", () => {
       ],
     });
     expect(next.game.highest).toBe(512);
-    expect(next.celebrate).toBe(512);
-    expect(chainReducer(next, { type: "celebrated" }).celebrate).toBeNull();
+    expect(next.celebrations).toEqual([512]);
+    expect(chainReducer(next, { type: "celebrated" }).celebrations).toEqual([]);
   });
 
   it("keeps the merge stamp counting across a restart, so new merges still get their effects", () => {
@@ -118,6 +163,7 @@ describe("spawnFromRows", () => {
         { row: 1, col: 2 },
         { row: 0, col: 3 },
       ],
+      earned: [],
     };
     const offsets = spawnFromRows(merge);
     expect(offsets.get("0,2")).toBe(-2);
