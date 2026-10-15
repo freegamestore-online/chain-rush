@@ -96,6 +96,11 @@ export default function App() {
             { label: "Best tile", value: formatValue(highest) },
           ]}
           rules={RULES}
+          about={
+            <p>
+              Built for <a href="https://freegamestore.online">freegamestore.online</a>
+            </p>
+          }
           onRestart={() => {
             endHelper();
             game.restart();

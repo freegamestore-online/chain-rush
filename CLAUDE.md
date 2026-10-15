@@ -10,3 +10,5 @@ A free game on FreeGameStore.
 Free, MIT-licensed, no tracking. For platform conventions, read
 https://freegamestore.online/skills.md
 before writing or changing anything.
+
+Platform conventions (SKILLS.md): https://raw.githubusercontent.com/freegamestore-online/platform/main/sites/freegamestore/SKILLS.md
