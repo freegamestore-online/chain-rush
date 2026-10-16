@@ -11,7 +11,11 @@ export function utcDate(now: Date = new Date()): string {
 }
 
 export function isDateString(value: unknown): value is string {
-  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value));
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(0);
+  date.setUTCFullYear(year ?? 0, (month ?? 0) - 1, day ?? 0);
+  return date.toISOString().slice(0, 10) === value;
 }
 
 /** 32-bit FNV-1a hash of the date, salted, used as the RNG seed for that day's board. */

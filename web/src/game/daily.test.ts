@@ -38,7 +38,17 @@ describe("isDateString", () => {
     expect(isDateString(value)).toBe(true);
   });
 
-  it.each(["2026-13-01", "16-10-2026", "2026-10-16T00:00", "", null, 20261016])("rejects %j", (value) => {
+  it.each([
+    "2026-13-01",
+    "2026-02-30",
+    "2026-04-31",
+    "2025-02-29",
+    "16-10-2026",
+    "2026-10-16T00:00",
+    "",
+    null,
+    20261016,
+  ])("rejects %j", (value) => {
     expect(isDateString(value)).toBe(false);
   });
 });
