@@ -100,6 +100,12 @@ describe("graceful failure", () => {
     expect(parseSavedFile(JSON.stringify(file))).toBeNull();
   });
 
+  it("returns null for a non-power-of-two tile above the 32-bit range", () => {
+    const file = JSON.parse(serializeSavedFile(fileFrom(playedEndless(5))));
+    file.slots.endless.game.grid[0][0] = 2 ** 32 + 2;
+    expect(parseSavedFile(JSON.stringify(file))).toBeNull();
+  });
+
   it("returns null when ids do not line up with the board", () => {
     const file = JSON.parse(serializeSavedFile(fileFrom(playedEndless(5))));
     file.slots.endless.ids[0][0] = file.slots.endless.ids[0][0] === null ? 1 : null;
@@ -144,4 +150,3 @@ describe("graceful failure", () => {
     expect(() => writeSavedFile(null, fileFrom(playedEndless(6)))).not.toThrow();
   });
 });
-

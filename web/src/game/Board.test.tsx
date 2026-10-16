@@ -82,6 +82,24 @@ describe("Board drag", () => {
     ]);
   });
 
+  it("includes the release cell even when no pointer-move event reported it", () => {
+    const grid = gridWith([
+      [2, 2, 8, 0, 0],
+      [4, 16, 32, 64, 128],
+    ]);
+    const { board, onCommit } = renderBoard(grid);
+
+    act(() => {
+      fireEvent.pointerDown(board, { pointerId: 1, ...pointOf(0, 0) });
+      fireEvent.pointerUp(board, { pointerId: 1, ...pointOf(0, 1) });
+    });
+
+    expect(onCommit).toHaveBeenCalledWith([
+      { row: 0, col: 0 },
+      { row: 0, col: 1 },
+    ]);
+  });
+
   it("shows the merge value on the chain tip while dragging", () => {
     const grid = gridWith([
       [2, 2, 4, 0, 0],

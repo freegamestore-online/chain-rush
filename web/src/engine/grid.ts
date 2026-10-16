@@ -42,7 +42,9 @@ export function isAdjacent(a: Pos, b: Pos): boolean {
 }
 
 export function isPowerOfTwo(n: number): boolean {
-  return Number.isInteger(n) && n > 0 && (n & (n - 1)) === 0;
+  if (!Number.isInteger(n) || n <= 0) return false;
+  const exponent = Math.floor(Math.log2(n));
+  return 2 ** exponent === n;
 }
 
 /** Smallest power of two that is >= n (n >= 1). */

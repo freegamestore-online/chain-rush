@@ -147,10 +147,11 @@ export function Board({ grid, ids, merge, over, onCommit, mode = "chain", pendin
   const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
     const active = drag.current;
     if (!active || event.pointerId !== active.pointerId) return;
+    active.pending = boardPoint(event);
     if (active.frame) {
       cancelAnimationFrame(active.frame);
-      advance(active);
     }
+    advance(active);
     drag.current = null;
     setChain([]);
     if (active.chain.length >= 2) onCommit(active.chain);
