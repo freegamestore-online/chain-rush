@@ -13,9 +13,13 @@ export default defineConfig({
     hasTouch: true,
     screenshot: "only-on-failure",
     video: "retain-on-failure",
-    ...devices["Pixel 7"],
   },
-  projects: [{ name: "phone-chrome", use: { ...devices["Pixel 7"], viewport: { width: 390, height: 844 } } }],
+  projects: [
+    {
+      name: "phone-chrome",
+      use: { ...devices["Pixel 7"], viewport: { width: 390, height: 844 } },
+    },
+  ],
   webServer: {
     command: "pnpm dev",
     url: "http://localhost:5173",
