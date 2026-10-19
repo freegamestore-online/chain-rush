@@ -237,7 +237,16 @@ export function Board({ grid, ids, merge, over, onCommit, mode = "chain", pendin
   for (let row = 0; row < ROWS; row++) {
     for (let col = 0; col < COLS; col++) {
       const { x, y } = cellOffset({ row, col });
-      slots.push(<div key={`${row},${col}`} className="slot" style={{ transform: `translate(${x}cqw, ${y}cqw)` }} />);
+      slots.push(
+        <div
+          key={`${row},${col}`}
+          className="slot"
+          data-testid="board-cell"
+          data-row={row}
+          data-col={col}
+          style={{ transform: `translate(${x}cqw, ${y}cqw)` }}
+        />,
+      );
     }
   }
 

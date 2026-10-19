@@ -92,7 +92,7 @@ export default function App() {
         <GameTopbar
           title="Chain Rush"
           stats={[
-            { label: "Score", value: score, accent: true },
+            { label: "Score", value: <span data-testid="score-value">{score}</span>, accent: true },
             { label: "Best tile", value: formatValue(highest) },
           ]}
           rules={RULES}
@@ -111,7 +111,7 @@ export default function App() {
       <GameAuth />
       <main className="play-area">
         <div className="play-column">
-          <div className="mode-bar" role="group" aria-label="Game mode">
+          <div className="mode-bar" role="group" aria-label="Game mode" data-testid="game-modes">
             <GameButton
               size="sm"
               variant={gameMode === "endless" ? "primary" : "secondary"}
@@ -140,7 +140,7 @@ export default function App() {
             pending={pending}
             onTap={onTap}
           />
-          <div className="helper-bar" role="group" aria-label="Helpers">
+          <div className="helper-bar" role="group" aria-label="Helpers" data-testid="game-helpers">
             <GameButton
               size="sm"
               variant={mode === "hammer" ? "primary" : "secondary"}
@@ -180,11 +180,11 @@ export default function App() {
               Undo
             </GameButton>
           </div>
-          <p className="play-status" aria-live="polite">
+          <p className="play-status" aria-live="polite" data-testid="game-status">
             {status}
           </p>
           {scoresOpen && (
-            <section className="scores" aria-label="Scores">
+            <section className="scores" aria-label="Scores" data-testid="leaderboard">
               <p>
                 Best endless: <strong>{scores.board.endless}</strong>
               </p>
@@ -211,15 +211,17 @@ export default function App() {
           />
         )}
         {finished && (
-          <GameOverScreen
-            score={score}
-            highScore={gameMode === "endless" ? Math.max(scores.board.endless, score) : undefined}
-            onPlayAgain={game.restart}
-          >
-            {gameMode === "daily" && (
-              <p>Daily complete. Come back tomorrow for a new board, or play endless now.</p>
-            )}
-          </GameOverScreen>
+          <div data-testid="game-over">
+            <GameOverScreen
+              score={score}
+              highScore={gameMode === "endless" ? Math.max(scores.board.endless, score) : undefined}
+              onPlayAgain={game.restart}
+            >
+              {gameMode === "daily" && (
+                <p>Daily complete. Come back tomorrow for a new board, or play endless now.</p>
+              )}
+            </GameOverScreen>
+          </div>
         )}
       </main>
     </GameShell>

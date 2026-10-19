@@ -74,7 +74,14 @@ export function Tile({ pos, value, selected, preview, pop, spawnStamp, fromRow, 
   if (label.length >= 4) classes.push("long");
 
   return (
-    <div ref={outer} className="tile" style={{ transform: `translate(${x}cqw, ${y}cqw)` }}>
+    <div
+      ref={outer}
+      className="tile"
+      data-testid="board-tile"
+      data-row={pos.row}
+      data-col={pos.col}
+      style={{ transform: `translate(${x}cqw, ${y}cqw)` }}
+    >
       <div
         ref={face}
         className={classes.join(" ")}

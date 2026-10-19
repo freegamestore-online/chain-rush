@@ -311,10 +311,19 @@ export function randomSeed(): number {
   return Math.floor(Math.random() * 2 ** 32);
 }
 
+/** Optional deterministic seed for browser play-throughs and shareable reproductions. */
+function initialSeed(): number {
+  if (typeof window === "undefined") return randomSeed();
+  const raw = new URLSearchParams(window.location.search).get("seed");
+  if (raw === null || !/^\d+$/.test(raw)) return randomSeed();
+  const seed = Number(raw);
+  return Number.isSafeInteger(seed) && seed <= 0xffff_ffff ? seed : randomSeed();
+}
+
 export function useChainGame() {
   const [today] = useState(utcDate);
   const [state, dispatch] = useReducer(chainReducer, undefined, () =>
-    initialState(readSavedFile(browserStore()), today, randomSeed()),
+    initialState(readSavedFile(browserStore()), today, initialSeed()),
   );
 
   useEffect(() => {
