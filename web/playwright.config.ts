@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const port = process.env.PLAYWRIGHT_PORT ?? "5173";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
@@ -7,7 +9,7 @@ export default defineConfig({
   outputDir: "./e2e/test-results",
   reporter: "list",
   use: {
-    baseURL: "http://localhost:5173",
+    baseURL: `http://localhost:${port}`,
     viewport: { width: 390, height: 844 },
     isMobile: true,
     hasTouch: true,
@@ -21,8 +23,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm dev",
-    url: "http://localhost:5173",
+    command: `pnpm dev -- --port ${port}`,
+    url: `http://localhost:${port}`,
     reuseExistingServer: !process.env.CI,
   },
 });
