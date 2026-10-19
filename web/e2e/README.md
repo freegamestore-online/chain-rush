@@ -8,6 +8,7 @@ pnpm --dir web test:e2e
 ```
 
 The suite uses a 390×844 Chromium mobile viewport. It captures light and dark reference screens in `screenshots/` and writes failure screenshots/video under `test-results/`.
+It also checks the Rush mode picker and one-minute end condition using the browser's controllable clock.
 
 If another local app already uses port 5173, choose a free port for the Vite server and Playwright base URL:
 
