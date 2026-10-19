@@ -211,7 +211,7 @@ export default function App() {
           />
         )}
         {finished && (
-          <div data-testid="game-over">
+          <div data-testid="game-over" style={{ position: "absolute", inset: 0, zIndex: 800 }}>
             <GameOverScreen
               score={score}
               highScore={gameMode === "endless" ? Math.max(scores.board.endless, score) : undefined}
