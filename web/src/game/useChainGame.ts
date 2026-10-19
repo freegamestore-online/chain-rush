@@ -18,6 +18,7 @@ import {
   type Mode,
   type SavedFile,
   type SavedGame,
+  RUSH_DURATION_MS,
   browserStore,
   readSavedFile,
   writeSavedFile,
@@ -59,6 +60,7 @@ export interface ChainState {
   date: string | null;
   /** The other mode's game, kept while this one is on screen. */
   parked: Partial<Record<Mode, SavedGame>>;
+  remainingMs: number | null;
 }
 
 export type ChainAction =
@@ -69,6 +71,7 @@ export type ChainAction =
   | { type: "undo" }
   | { type: "restart"; seed: number }
   | { type: "switchMode"; mode: Mode; today: string; seed: number }
+  | { type: "tick"; elapsedMs: number }
   | { type: "celebrated" };
 
 /** Ids for every occupied cell of a grid, counting up from 1. */
@@ -93,6 +96,7 @@ export function freshState(mode: Mode, today: string, seed: number, stamp = 0, p
     mode,
     date: mode === "daily" ? today : null,
     parked,
+    remainingMs: mode === "rush" ? RUSH_DURATION_MS : null,
   };
 }
 
@@ -114,6 +118,7 @@ function fromSaved(saved: SavedGame, mode: Mode, stamp: number, parked: ChainSta
     mode,
     date: saved.date,
     parked,
+    remainingMs: saved.remainingMs,
   };
 }
 
@@ -124,6 +129,7 @@ export function toSaved(state: ChainState): SavedGame {
     ids: state.ids,
     undoIds: state.undoIds,
     nextId: state.nextId,
+    remainingMs: state.remainingMs,
   };
 }
 
@@ -167,7 +173,7 @@ export function isLimitReached(state: ChainState): boolean {
 
 /** The game has ended: the board has no chain left, or a daily board has used its moves. */
 export function isFinished(state: ChainState): boolean {
-  return state.game.over || isLimitReached(state);
+  return state.game.over || isLimitReached(state) || (state.mode === "rush" && state.remainingMs === 0);
 }
 
 export function chainReducer(state: ChainState, action: ChainAction): ChainState {
@@ -186,6 +192,9 @@ export function chainReducer(state: ChainState, action: ChainAction): ChainState
       return restart(state, action.seed);
     case "switchMode":
       return switchMode(state, action.mode, action.today, action.seed);
+    case "tick":
+      if (state.mode !== "rush" || isFinished(state)) return state;
+      return { ...state, remainingMs: Math.max(0, (state.remainingMs ?? RUSH_DURATION_MS) - Math.max(0, action.elapsedMs)) };
     case "celebrated":
       return { ...state, celebrations: state.celebrations.slice(1) };
   }
@@ -276,6 +285,7 @@ function undo(state: ChainState): ChainState {
  */
 function restart(state: ChainState, seed: number): ChainState {
   if (state.mode === "daily") return switchMode(state, "endless", "", seed);
+  if (state.mode === "rush") return freshState("rush", "", seed, state.stamp, state.parked);
   return freshState("endless", "", seed, state.stamp, state.parked);
 }
 
@@ -291,7 +301,7 @@ function switchMode(state: ChainState, mode: Mode, today: string, seed: number):
   const target = parked[mode];
   delete parked[mode];
 
-  const reusable = target !== undefined && (mode === "daily" ? target.date === today : !target.game.over);
+  const reusable = target !== undefined && (mode === "daily" ? target.date === today : !target.game.over && (mode !== "rush" || (target.remainingMs ?? 0) > 0));
   if (target && reusable) return fromSaved(target, mode, state.stamp, parked);
   return freshState(mode, today, seed, state.stamp, parked);
 }
@@ -341,6 +351,18 @@ export function useChainGame() {
     [today],
   );
   const celebrated = useCallback(() => dispatch({ type: "celebrated" }), []);
+
+  useEffect(() => {
+    if (state.mode !== "rush" || isFinished(state)) return;
+    let previous = Date.now();
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      const elapsedMs = now - previous;
+      previous = now;
+      dispatch({ type: "tick", elapsedMs });
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [state.mode, state.remainingMs === 0, state.game.over]);
 
   return {
     ...state,

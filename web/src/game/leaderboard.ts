@@ -5,6 +5,7 @@ import { type KeyValueStore, browserStore } from "./storage";
 /** The local leaderboard: the best endless score, and the best score for each daily date. */
 export interface Leaderboard {
   endless: number;
+  rush: number;
   daily: Record<string, number>;
 }
 
@@ -18,7 +19,7 @@ export const LEADERBOARD_KEY = "chain-rush-leaderboard";
 /** Daily entries kept, newest first. Older dates are dropped so storage stays small. */
 export const MAX_DAILY_ENTRIES = 60;
 
-export const EMPTY_LEADERBOARD: Leaderboard = { endless: 0, daily: {} };
+export const EMPTY_LEADERBOARD: Leaderboard = { endless: 0, rush: 0, daily: {} };
 
 const isCount = (value: unknown): value is number => typeof value === "number" && Number.isInteger(value) && value >= 0;
 
@@ -47,6 +48,7 @@ export function parseLeaderboard(raw: string | null): Leaderboard {
   }
   return {
     endless: isCount(value.endless) ? value.endless : 0,
+    rush: isCount(value.rush) ? value.rush : 0,
     daily: keepRecent(daily),
   };
 }
@@ -55,6 +57,12 @@ export function parseLeaderboard(raw: string | null): Leaderboard {
 export function recordEndless(board: Leaderboard, score: number): Leaderboard {
   if (!isCount(score)) return board;
   return { ...board, endless: Math.max(board.endless, score) };
+}
+
+/** Records a Rush score independently from the untimed endless best. */
+export function recordRush(board: Leaderboard, score: number): Leaderboard {
+  if (!isCount(score)) return board;
+  return { ...board, rush: Math.max(board.rush, score) };
 }
 
 /** Records a daily score for its date, keeping the best per date. An invalid date or score is skipped. */
@@ -104,10 +112,11 @@ export function useLeaderboard() {
   useEffect(() => writeLeaderboard(store, board), [store, board]);
 
   const recordEndlessScore = useCallback((score: number) => setBoard((prev) => recordEndless(prev, score)), []);
+  const recordRushScore = useCallback((score: number) => setBoard((prev) => recordRush(prev, score)), []);
   const recordDailyScore = useCallback(
     (date: string, score: number) => setBoard((prev) => recordDaily(prev, date, score)),
     [],
   );
 
-  return { board, recordEndlessScore, recordDailyScore };
+  return { board, recordEndlessScore, recordRushScore, recordDailyScore };
 }

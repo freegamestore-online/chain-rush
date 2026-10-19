@@ -7,6 +7,7 @@ import { DAILY_MOVES } from "./game/daily";
 import { formatValue } from "./game/format";
 import { useLeaderboard, recentDaily } from "./game/leaderboard";
 import { useChainGame } from "./game/useChainGame";
+import { RUSH_DURATION_MS } from "./game/storage";
 import type { Pos } from "./engine";
 
 const RULES = (
@@ -34,6 +35,7 @@ export default function App() {
   useEffect(() => {
     if (!finished) return;
     if (gameMode === "daily" && date) scores.recordDailyScore(date, score);
+    else if (gameMode === "rush") scores.recordRushScore(score);
     else scores.recordEndlessScore(score);
     // Only the end of a game matters here: `scores` changes identity on every update.
   }, [finished, gameMode, date, score]);
@@ -48,7 +50,7 @@ export default function App() {
     setMode((current) => (current === next ? "chain" : next));
   };
 
-  const switchMode = (next: "endless" | "daily") => {
+  const switchMode = (next: "endless" | "rush" | "daily") => {
     endHelper();
     game.switchMode(next);
   };
@@ -80,9 +82,11 @@ export default function App() {
     hint ??
     (earned.length > 0
       ? `Earned: ${earned.map(labelOf).join(", ")}`
-      : gameMode === "daily"
+        : gameMode === "daily"
         ? `Daily ${date} · ${Math.max(0, DAILY_MOVES - moves)} moves left`
-        : " ");
+        : gameMode === "rush"
+          ? `Rush · ${Math.ceil((game.remainingMs ?? RUSH_DURATION_MS) / 1000)} seconds left`
+          : " ");
 
   const todays = date ? scores.board.daily[date] : undefined;
 
@@ -118,6 +122,13 @@ export default function App() {
               onClick={() => switchMode("endless")}
             >
               Endless
+            </GameButton>
+            <GameButton
+              size="sm"
+              variant={gameMode === "rush" ? "primary" : "secondary"}
+              onClick={() => switchMode("rush")}
+            >
+              Rush
             </GameButton>
             <GameButton
               size="sm"
@@ -189,6 +200,9 @@ export default function App() {
                 Best endless: <strong>{scores.board.endless}</strong>
               </p>
               <p>
+                Best Rush: <strong>{scores.board.rush}</strong>
+              </p>
+              <p>
                 Today's daily: <strong>{todays ?? "not played"}</strong>
               </p>
               {recentDaily(scores.board).length > 0 && (
@@ -214,12 +228,11 @@ export default function App() {
           <div data-testid="game-over" style={{ position: "absolute", inset: 0, zIndex: 800 }}>
             <GameOverScreen
               score={score}
-              highScore={gameMode === "endless" ? Math.max(scores.board.endless, score) : undefined}
+              highScore={gameMode === "endless" ? Math.max(scores.board.endless, score) : gameMode === "rush" ? Math.max(scores.board.rush, score) : undefined}
               onPlayAgain={game.restart}
             >
-              {gameMode === "daily" && (
-                <p>Daily complete. Come back tomorrow for a new board, or play endless now.</p>
-              )}
+              {gameMode === "daily" && <p>Daily complete. Come back tomorrow for a new board, or play endless now.</p>}
+              {gameMode === "rush" && <p>Rush over. Your best Rush score is saved separately.</p>}
             </GameOverScreen>
           </div>
         )}

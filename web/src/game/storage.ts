@@ -14,8 +14,9 @@ import { isDateString } from "./daily";
 /** The one localStorage key holding the saved games. */
 export const STATE_KEY = "chain-rush-state";
 
-export const MODES = ["endless", "daily"] as const;
+export const MODES = ["endless", "rush", "daily"] as const;
 export type Mode = (typeof MODES)[number];
+export const RUSH_DURATION_MS = 60_000;
 
 /** One game as saved: the engine state plus the view's tile ids. Transient animation state is not saved. */
 export interface SavedGame {
@@ -25,6 +26,8 @@ export interface SavedGame {
   ids: (number | null)[][];
   undoIds: (number | null)[][] | null;
   nextId: number;
+  /** Remaining clock time for Rush, null for untimed modes. */
+  remainingMs: number | null;
 }
 
 /** The whole save: which mode is on screen, and a saved game for each mode that has one. */
@@ -130,7 +133,9 @@ function parseSavedGame(value: unknown): SavedGame | null {
     undoIds = parseIds(value.undoIds);
     if (!undoIds || !game.undo || !idsMatch(undoIds, game.undo.grid)) return null;
   }
-  return { date: value.date, game, ids, undoIds, nextId: value.nextId };
+  const remainingMs = value.remainingMs === undefined ? null : value.remainingMs;
+  if (remainingMs !== null && (!isCount(remainingMs) || remainingMs > RUSH_DURATION_MS)) return null;
+  return { date: value.date, game, ids, undoIds, nextId: value.nextId, remainingMs };
 }
 
 function validateFile(value: unknown): SavedFile | null {
@@ -145,7 +150,7 @@ function validateFile(value: unknown): SavedFile | null {
     const saved = parseSavedGame(raw);
     if (!saved) return null;
     // Endless has no date and a daily board always has one, so a mismatch means the save is damaged.
-    if ((mode === "daily") !== (saved.date !== null)) return null;
+    if ((mode === "daily") !== (saved.date !== null) || (mode === "rush") !== (saved.remainingMs !== null)) return null;
     slots[mode] = saved;
   }
   return { version: FILE_VERSION, active: value.active as Mode, slots };
