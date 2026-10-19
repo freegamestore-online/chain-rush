@@ -172,6 +172,19 @@ test("daily challenge completes and records its score", async ({ page }) => {
   await expect(page.getByTestId("leaderboard")).toContainText("Today's daily:");
 });
 
+test("Rush mode is selectable and ends when its one-minute clock expires", async ({ page }) => {
+  await page.clock.install({ time: new Date("2026-10-20T00:00:00Z") });
+  await openSeededGame(page);
+  await page.getByTestId("game-modes").getByRole("button", { name: "Rush" }).click();
+  await expect(page.getByTestId("game-status")).toContainText("60 seconds left");
+  await page.clock.fastForward(60_100);
+  await expect(page.getByTestId("game-over")).toBeVisible();
+  await expect(page.getByTestId("game-over")).toContainText("Rush over");
+  const scores = await page.evaluate(() => JSON.parse(localStorage.getItem("chain-rush-leaderboard") ?? "{}"));
+  expect(scores.rush).toBe(0);
+  expect(scores.endless).toBe(0);
+});
+
 test("hammer helper consumes a use and keeps the score unchanged", async ({ page }) => {
   await openSeededGame(page);
   const score = await page.getByTestId("score-value").innerText();
