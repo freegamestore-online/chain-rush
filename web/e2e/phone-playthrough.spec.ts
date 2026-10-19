@@ -173,8 +173,8 @@ test("daily challenge completes and records its score", async ({ page }) => {
 });
 
 test("Rush mode is selectable and ends when its one-minute clock expires", async ({ page }) => {
-  await page.clock.install({ time: new Date("2026-10-20T00:00:00Z") });
   await openSeededGame(page);
+  await page.clock.install({ time: new Date("2026-10-20T00:00:00Z") });
   await page.getByTestId("game-modes").getByRole("button", { name: "Rush" }).click();
   await expect(page.getByTestId("game-status")).toContainText("60 seconds left");
   await page.clock.fastForward(60_100);
