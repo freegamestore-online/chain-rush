@@ -18,3 +18,23 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: pnpm --dir web exec playwright install chromium --with-deps
+      - name: Run phone browser play-through
+        run: pnpm --filter @chain-rush/web test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: phone-e2e-test-results
+          path: web/e2e/test-results/
