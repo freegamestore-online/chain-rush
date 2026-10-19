@@ -8,6 +8,7 @@ import {
   recentDaily,
   recordDaily,
   recordEndless,
+  recordRush,
   writeLeaderboard,
 } from "./leaderboard";
 import type { KeyValueStore } from "./storage";
@@ -30,6 +31,13 @@ describe("endless best score", () => {
     board = recordEndless(board, 120);
     board = recordEndless(board, 450);
     expect(board.endless).toBe(450);
+    expect(board.rush).toBe(0);
+  });
+
+  it("keeps a separate best Rush score", () => {
+    const board = recordRush(recordRush(EMPTY_LEADERBOARD, 500), 200);
+    expect(board.rush).toBe(500);
+    expect(board.endless).toBe(0);
   });
 
   it("ignores a score that is not a whole, non-negative number", () => {
@@ -82,7 +90,7 @@ describe("invalid entries are skipped quietly", () => {
         "2026-10-13": 2.5,
       },
     });
-    expect(parseLeaderboard(raw)).toEqual({ endless: 250, daily: { "2026-10-16": 70 } });
+    expect(parseLeaderboard(raw)).toEqual({ endless: 250, rush: 0, daily: { "2026-10-16": 70 } });
   });
 
   it("reads a bad endless best as zero", () => {
@@ -96,7 +104,7 @@ describe("invalid entries are skipped quietly", () => {
   });
 
   it("treats a daily section that is not an object as empty", () => {
-    expect(parseLeaderboard(JSON.stringify({ endless: 5, daily: [1, 2] }))).toEqual({ endless: 5, daily: {} });
+    expect(parseLeaderboard(JSON.stringify({ endless: 5, daily: [1, 2] }))).toEqual({ endless: 5, rush: 0, daily: {} });
   });
 });
 

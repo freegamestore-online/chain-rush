@@ -224,4 +224,25 @@ describe("modes", () => {
     const again = chainReducer(endless, { type: "switchMode", mode: "daily", today: TODAY, seed: 1 });
     expect(again.game.moves).toBe(4);
   });
+
+  it("ticks Rush down, ends at zero, and rejects further moves", () => {
+    let rush = chainReducer(startState(46), { type: "switchMode", mode: "rush", today: TODAY, seed: 5 });
+    expect(rush.mode).toBe("rush");
+    expect(rush.remainingMs).toBe(60_000);
+    rush = chainReducer(rush, { type: "tick", elapsedMs: 59_500 });
+    expect(rush.remainingMs).toBe(500);
+    rush = chainReducer(rush, { type: "tick", elapsedMs: 900 });
+    expect(rush.remainingMs).toBe(0);
+    expect(isFinished(rush)).toBe(true);
+    expect(chainReducer(rush, { type: "commit", chain: anyPair(rush.game.grid) })).toBe(rush);
+  });
+
+  it("parks and resumes Rush with its remaining time", () => {
+    let rush = chainReducer(startState(47), { type: "switchMode", mode: "rush", today: TODAY, seed: 5 });
+    rush = chainReducer(rush, { type: "tick", elapsedMs: 12_000 });
+    const daily = chainReducer(rush, { type: "switchMode", mode: "daily", today: TODAY, seed: 2 });
+    const resumed = chainReducer(daily, { type: "switchMode", mode: "rush", today: TODAY, seed: 2 });
+    expect(resumed.mode).toBe("rush");
+    expect(resumed.remainingMs).toBe(48_000);
+  });
 });

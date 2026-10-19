@@ -41,6 +41,15 @@ describe("save and restore", () => {
     expect(restored.date).toBeNull();
   });
 
+  it("round-trips Rush with its remaining clock time", () => {
+    const rush = { ...freshState("rush", "2026-10-16", 17), remainingMs: 32_500 };
+    const store = memoryStore();
+    writeSavedFile(store, fileFrom(rush));
+    const restored = initialState(readSavedFile(store), "2026-10-16", 1);
+    expect(restored.mode).toBe("rush");
+    expect(restored.remainingMs).toBe(32_500);
+  });
+
   it("round-trips a daily game and keeps the endless game parked", () => {
     const endless = playedEndless(8);
     const daily = { ...freshState("daily", "2026-10-16", 0), parked: {} };
