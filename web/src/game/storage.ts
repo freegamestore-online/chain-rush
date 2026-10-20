@@ -52,27 +52,22 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isCount = (value: unknown, min = 0): value is number =>
   typeof value === "number" && Number.isInteger(value) && value >= min;
 
-function parseGrid(value: unknown): Grid | null {
+function parseRows<T>(value: unknown, isValid: (cell: unknown) => cell is T): T[][] | null {
   if (!Array.isArray(value) || value.length !== ROWS) return null;
-  const grid: Grid = [];
+  const rows: T[][] = [];
   for (const row of value) {
-    if (!Array.isArray(row) || row.length !== COLS) return null;
-    const ok = row.every((tile) => tile === null || (isCount(tile, 2) && isPowerOfTwo(tile)));
-    if (!ok) return null;
-    grid.push([...row] as Tile[]);
+    if (!Array.isArray(row) || row.length !== COLS || !row.every(isValid)) return null;
+    rows.push([...row]);
   }
-  return grid;
+  return rows;
+}
+
+function parseGrid(value: unknown): Grid | null {
+  return parseRows<Tile>(value, (tile): tile is Tile => tile === null || (isCount(tile, 2) && isPowerOfTwo(tile)));
 }
 
 function parseIds(value: unknown): (number | null)[][] | null {
-  if (!Array.isArray(value) || value.length !== ROWS) return null;
-  const ids: (number | null)[][] = [];
-  for (const row of value) {
-    if (!Array.isArray(row) || row.length !== COLS) return null;
-    if (!row.every((id) => id === null || isCount(id, 1))) return null;
-    ids.push([...row] as (number | null)[]);
-  }
-  return ids;
+  return parseRows<number | null>(value, (id): id is number | null => id === null || isCount(id, 1));
 }
 
 /** Ids must be present exactly where the board has a tile. */
