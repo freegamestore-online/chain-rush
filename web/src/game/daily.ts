@@ -10,6 +10,16 @@ export function utcDate(now: Date = new Date()): string {
   return now.toISOString().slice(0, 10);
 }
 
+/** Time remaining until the next UTC daily board, formatted as HH:MM:SS. */
+export function timeToNextDaily(now: Date = new Date()): string {
+  const nextUtcDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+  const seconds = Math.max(0, Math.ceil((nextUtcDay - now.getTime()) / 1000));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  return [hours, minutes, remainingSeconds].map((part) => String(part).padStart(2, "0")).join(":");
+}
+
 export function isDateString(value: unknown): value is string {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const [year, month, day] = value.split("-").map(Number);

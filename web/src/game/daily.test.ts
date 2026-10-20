@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { hasValidChain } from "../engine";
-import { DAILY_MOVES, dailyGame, dailySeed, isDateString, utcDate } from "./daily";
+import { DAILY_MOVES, dailyGame, dailySeed, isDateString, timeToNextDaily, utcDate } from "./daily";
 
 describe("daily board", () => {
   it("is reproducible: the same date always gives the same board", () => {
@@ -30,6 +30,13 @@ describe("utcDate", () => {
   it("formats a date as YYYY-MM-DD in UTC", () => {
     expect(utcDate(new Date("2026-10-16T23:30:00Z"))).toBe("2026-10-16");
     expect(utcDate(new Date("2026-10-17T00:30:00Z"))).toBe("2026-10-17");
+  });
+});
+
+describe("timeToNextDaily", () => {
+  it("counts down to the next UTC midnight", () => {
+    expect(timeToNextDaily(new Date("2026-10-16T23:59:58.100Z"))).toBe("00:00:02");
+    expect(timeToNextDaily(new Date("2026-10-16T12:34:56.000Z"))).toBe("11:25:04");
   });
 });
 

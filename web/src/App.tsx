@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Celebration } from "./feel/Celebration";
 import GameShell from "./GameShell";
 import { Board, type BoardMode } from "./game/Board";
-import { DAILY_MOVES } from "./game/daily";
+import { DAILY_MOVES, timeToNextDaily } from "./game/daily";
 import { formatValue } from "./game/format";
 import { useLeaderboard, recentDaily } from "./game/leaderboard";
 import { useChainGame } from "./game/useChainGame";
@@ -25,10 +25,17 @@ export default function App() {
   const [mode, setMode] = useState<BoardMode>("chain");
   const [pending, setPending] = useState<Pos | null>(null);
   const [scoresOpen, setScoresOpen] = useState(false);
+  const [dailyCountdown, setDailyCountdown] = useState(() => timeToNextDaily());
   const { finished, limitReached, mode: gameMode, date, game: state } = game;
   const { score, highest, helpers, undo: canUndo, grid, moves } = state;
   const celebration = game.celebrations[0];
   const earned = game.merge?.earned ?? [];
+
+  useEffect(() => {
+    const update = () => setDailyCountdown(timeToNextDaily());
+    const timer = window.setInterval(update, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // Record the score once the game ends. Recording is idempotent (keeps the best), so a reload
   // of a finished game does no harm.
@@ -141,6 +148,9 @@ export default function App() {
               Scores
             </GameButton>
           </div>
+          <p className="daily-countdown" data-testid="daily-countdown" aria-live="off">
+            Next daily in {dailyCountdown} UTC
+          </p>
           <Board
             grid={grid}
             ids={game.ids}

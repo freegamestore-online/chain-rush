@@ -172,6 +172,18 @@ test("daily challenge completes and records its score", async ({ page }) => {
   await expect(page.getByTestId("leaderboard")).toContainText("Today's daily:");
 });
 
+for (const colorScheme of ["light", "dark"] as const) {
+  test(`daily challenge is available on a ${colorScheme}-mode phone`, async ({ page }) => {
+    await openSeededGame(page, colorScheme);
+    await page.getByTestId("game-modes").getByRole("button", { name: "Daily" }).click();
+    await expect(page.getByTestId("game-status")).toContainText(/^Daily \d{4}-\d{2}-\d{2} · 30 moves left$/);
+    await expect(page.getByTestId("daily-countdown")).toContainText(/^Next daily in \d{2}:\d{2}:\d{2} UTC$/);
+    await expect(page.getByRole("application", { name: "Chain Rush board" })).toBeVisible();
+    await expect(page.getByTestId("board-cell")).toHaveCount(40);
+    await page.screenshot({ path: `e2e/screenshots/daily-phone-${colorScheme}.png` });
+  });
+}
+
 test("Rush mode is selectable and ends when its one-minute clock expires", async ({ page }) => {
   await openSeededGame(page);
   await page.clock.install({ time: new Date("2026-10-20T00:00:00Z") });
