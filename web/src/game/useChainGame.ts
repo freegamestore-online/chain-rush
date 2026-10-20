@@ -187,7 +187,7 @@ export function chainReducer(state: ChainState, action: ChainAction): ChainState
     case "shuffle":
       return isFinished(state) ? state : shuffle(state);
     case "undo":
-      return isLimitReached(state) ? state : undo(state);
+      return isFinished(state) ? state : undo(state);
     case "restart":
       return restart(state, action.seed);
     case "switchMode":

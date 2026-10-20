@@ -237,6 +237,14 @@ describe("modes", () => {
     expect(chainReducer(rush, { type: "commit", chain: anyPair(rush.game.grid) })).toBe(rush);
   });
 
+  it("rejects undo after Rush expires", () => {
+    let rush = chainReducer(startState(48), { type: "switchMode", mode: "rush", today: TODAY, seed: 5 });
+    rush = chainReducer(rush, { type: "commit", chain: anyPair(rush.game.grid) });
+    rush = chainReducer(rush, { type: "tick", elapsedMs: 60_000 });
+    expect(rush.game.undo).not.toBeNull();
+    expect(chainReducer(rush, { type: "undo" })).toBe(rush);
+  });
+
   it("parks and resumes Rush with its remaining time", () => {
     let rush = chainReducer(startState(47), { type: "switchMode", mode: "rush", today: TODAY, seed: 5 });
     rush = chainReducer(rush, { type: "tick", elapsedMs: 12_000 });
